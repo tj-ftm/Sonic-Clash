@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+:root {
+  /* Neon Colors */
+  --neon-pink: #ff00ff;
+  --neon-blue: #00f0ff;
+  --neon-purple: #9900ff;
+  --neon-green: #00ff66;
+  --neon-yellow: #ffff00;
+  
+  /* Background Colors */
+  --bg-dark: #0a0a12;
+  --bg-card: #14141f;
+  --bg-card-hover: #1c1c2d;
+  
+  /* Border */
+  --border-neon: 2px solid var(--neon-blue);
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: white;
+  font-family: 'Press Start 2P', system-ui, sans-serif;
+  -webkit-font-smoothing: none;
+  image-rendering: pixelated;
+}
+
+/* Retro text shadow */
+.retro-text {
+  text-shadow: 
+    2px 2px 0 var(--neon-pink),
+    -2px -2px 0 var(--neon-blue);
+}
+
+/* Pixelated elements */
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* Retro button */
+.retro-button {
+  background-color: var(--bg-card);
+  border: var(--border-neon);
+  color: white;
+  padding: 12px 24px;
+  text-align: center;
+  text-transform: uppercase;
+  transition: all 0.3s;
+  box-shadow: 0 0 10px var(--neon-blue);
+}
+
+.retro-button:hover {
+  background-color: var(--bg-card-hover);
+  box-shadow: 0 0 20px var(--neon-pink);
+  transform: translateY(-2px);
+}
+
+/* Neon card */
+.neon-card {
+  background-color: var(--bg-card);
+  border: var(--border-neon);
+  box-shadow: 0 0 15px var(--neon-blue);
+  transition: all 0.3s;
+}
+
+.neon-card:hover {
+  box-shadow: 0 0 20px var(--neon-pink);
+  transform: translateY(-5px);
+}
+
+/* Scanline effect */
+.scanlines {
+  position: relative;
+  overflow: hidden;
+}
+
+.scanlines::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.25) 50%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Animated CRT flicker */
+@keyframes flicker {
+  0% { opacity: 0.97; }
+  5% { opacity: 0.9; }
+  10% { opacity: 0.97; }
+  15% { opacity: 0.94; }
+  20% { opacity: 0.98; }
+  25% { opacity: 0.91; }
+  30% { opacity: 0.97; }
+  35% { opacity: 0.93; }
+  40% { opacity: 0.99; }
+  45% { opacity: 0.92; }
+  50% { opacity: 0.97; }
+  55% { opacity: 0.95; }
+  60% { opacity: 0.98; }
+  65% { opacity: 0.91; }
+  70% { opacity: 0.97; }
+  75% { opacity: 0.94; }
+  80% { opacity: 0.99; }
+  85% { opacity: 0.93; }
+  90% { opacity: 0.97; }
+  95% { opacity: 0.95; }
+  100% { opacity: 0.98; }
+}
+
+.crt-flicker {
+  animation: flicker 5s infinite;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--neon-blue);
+  border: 2px solid var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-pink);
+}
