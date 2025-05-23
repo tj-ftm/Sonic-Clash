@@ -10,12 +10,54 @@ import { Store, Filter, Search, CircleDollarSign, Tag } from 'lucide-react';
 
 const Marketplace: React.FC = () => {
   const { isConnected } = useWallet();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('price-asc');
+  const [listings, setListings] = useState<any[]>([]);
   
-  const listings = MOCK_MARKETPLACE_LISTINGS;
+  useEffect(() => {
+    fetchListings();
+  }, []);
+
+  const fetchListings = async () => {
+    try {
+      const response = await fetch('https://paintswap.io/api/v2/listings?collection=retrocard-clash');
+      const data = await response.json();
+      
+      const formattedListings = await Promise.all(data.listings.map(async (listing: any) => {
+        // Fetch IPFS metadata
+        const metadataResponse = await fetch(`https://ipfs.io/ipfs/${listing.tokenUri.split('ipfs://')[1]}`);
+        const metadata = await metadataResponse.json();
+        
+        return {
+          id: listing.listingId,
+          card: {
+            tokenId: listing.tokenId,
+            contractAddress: listing.contractAddress,
+            name: metadata.name,
+            image: `https://ipfs.io/ipfs/${metadata.image.split('ipfs://')[1]}`,
+            traits: {
+              attack: metadata.attributes.find((attr: any) => attr.trait_type === 'Attack')?.value || 50,
+              defense: metadata.attributes.find((attr: any) => attr.trait_type === 'Defense')?.value || 50,
+              speed: metadata.attributes.find((attr: any) => attr.trait_type === 'Speed')?.value || 25,
+              specialAbility: metadata.attributes.find((attr: any) => attr.trait_type === 'Special Ability')?.value || 'None',
+              rarity: metadata.attributes.find((attr: any) => attr.trait_type === 'Rarity')?.value || 'Common',
+            }
+          },
+          price: `${ethers.formatEther(listing.price)} S`,
+          seller: listing.seller,
+          listedAt: new Date(listing.createdAt * 1000).toISOString()
+        };
+      }));
+      
+      setListings(formattedListings);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Failed to fetch listings:', error);
+      setIsLoading(false);
+    }
+  };
   
   // Apply filters
   const filteredListings = listings.filter(listing => {
