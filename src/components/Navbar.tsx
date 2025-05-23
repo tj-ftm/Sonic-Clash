@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 const Navbar: React.FC = () => {
-  const { isConnected, address, balance, connectWallet, disconnectWallet } = useWallet();
+  const { isConnected, address, balance, nftBalance, tokenBalances, connectWallet, disconnectWallet } = useWallet();
   const { sonicPoints } = useGameData();
   const { theme, toggleTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -105,16 +105,16 @@ const Navbar: React.FC = () => {
               <div className="relative">
                 <button
                   onClick={toggleDropdown}
-                  className="flex items-center px-3 py-2 bg-secondary-dark dark:bg-secondary-light rounded-md border border-accent-light dark:border-accent-dark hover:bg-opacity-80 transition"
+                  className="flex items-center px-3 py-2 bg-neon-blue rounded-md border border-accent-light hover:bg-neon-purple transition"
                 >
-                  <Wallet className="h-4 w-4 text-accent-light dark:text-accent-dark mr-1" />
-                  <span className="text-xs font-pixel text-text-light dark:text-text-dark hidden sm:block">
+                  <Wallet className="h-4 w-4 text-black mr-1" />
+                  <span className="text-xs font-pixel text-black hidden sm:block">
                     {truncateAddress(address || '')}
                   </span>
-                  <span className="text-xs font-pixel text-text-light dark:text-text-dark block sm:hidden">
+                  <span className="text-xs font-pixel text-black block sm:hidden">
                     Wallet
                   </span>
-                  <ChevronDown className="h-3 w-3 ml-1 text-accent-light dark:text-accent-dark" />
+                  <ChevronDown className="h-3 w-3 ml-1 text-black" />
                 </button>
                 
                 {isDropdownOpen && (
@@ -134,8 +134,17 @@ const Navbar: React.FC = () => {
                         <h3 className="text-xs font-pixel text-text-light dark:text-text-dark mb-2">
                           Your NFTs
                         </h3>
-                        <div className="text-xs text-gray-500">
-                          Loading NFT collection...
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          {nftBalance.length > 0 ? (
+                            nftBalance.map((nft) => (
+                              <div key={nft.tokenId} className="flex items-center">
+                                <img src={nft.image} alt={nft.name} className="w-8 h-8 rounded mr-2" />
+                                <span className="text-xs text-text-light dark:text-text-dark">{nft.name}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-xs text-gray-500">No NFTs found</div>
+                          )}
                         </div>
                       </div>
 
@@ -144,8 +153,13 @@ const Navbar: React.FC = () => {
                         <h3 className="text-xs font-pixel text-text-light dark:text-text-dark mb-2">
                           Tokens
                         </h3>
-                        <div className="text-xs text-gray-500">
-                          Loading token balances...
+                        <div className="space-y-2">
+                          {tokenBalances.map((token) => (
+                            <div key={token.symbol} className="flex justify-between">
+                              <span className="text-xs text-text-light dark:text-text-dark">{token.symbol}</span>
+                              <span className="text-xs text-accent-light dark:text-accent-dark">{token.balance}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
 

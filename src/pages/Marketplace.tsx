@@ -7,6 +7,8 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { MOCK_MARKETPLACE_LISTINGS } from '../data/mockData';
 import { Rarity } from '../types/game';
 import { Store, Filter, Search, CircleDollarSign, Tag } from 'lucide-react';
+import { useEffect } from 'react';
+import { ethers } from 'ethers';
 
 const Marketplace: React.FC = () => {
   const { isConnected } = useWallet();

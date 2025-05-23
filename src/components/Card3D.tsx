@@ -23,14 +23,44 @@ const Card3D: React.FC<Card3DProps> = ({
   const texture = useTexture(card.image);
   
   // Create material with the card texture
-  const materials = [
-    new THREE.MeshStandardMaterial({ color: 0x222222 }), // Right
-    new THREE.MeshStandardMaterial({ color: 0x222222 }), // Left
-    new THREE.MeshStandardMaterial({ color: 0x222222 }), // Top
-    new THREE.MeshStandardMaterial({ color: 0x222222 }), // Bottom
-    new THREE.MeshStandardMaterial({ map: texture }), // Front
-    new THREE.MeshStandardMaterial({ color: 0x000066 }), // Back
-  ];
+  const materials = useMemo(() => [
+    new THREE.MeshStandardMaterial({ 
+      color: 0x222222,
+      metalness: 0.8,
+      roughness: 0.2,
+      emissive: new THREE.Color(0x111111)
+    }), // Right
+    new THREE.MeshStandardMaterial({ 
+      color: 0x222222,
+      metalness: 0.8,
+      roughness: 0.2,
+      emissive: new THREE.Color(0x111111)
+    }), // Left
+    new THREE.MeshStandardMaterial({ 
+      color: 0x222222,
+      metalness: 0.8,
+      roughness: 0.2,
+      emissive: new THREE.Color(0x111111)
+    }), // Top
+    new THREE.MeshStandardMaterial({ 
+      color: 0x222222,
+      metalness: 0.8,
+      roughness: 0.2,
+      emissive: new THREE.Color(0x111111)
+    }), // Bottom
+    new THREE.MeshStandardMaterial({ 
+      map: texture,
+      metalness: 0.5,
+      roughness: 0.5,
+      emissive: new THREE.Color(0x222222)
+    }), // Front
+    new THREE.MeshStandardMaterial({ 
+      color: 0x000066,
+      metalness: 0.8,
+      roughness: 0.2,
+      emissive: new THREE.Color(0x000033)
+    }), // Back
+  ], [texture]);
 
   useFrame((state, delta) => {
     if (!meshRef.current) return;
@@ -48,7 +78,7 @@ const Card3D: React.FC<Card3DProps> = ({
     <mesh
       ref={meshRef}
       position={position}
-      rotation={rotation}
+      rotation={[rotation[0], rotation[1] + Math.sin(state.clock.elapsedTime) * 0.1, rotation[2]]}
       castShadow
       receiveShadow
     >

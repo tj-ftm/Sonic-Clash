@@ -31,9 +31,17 @@ const BattleScene3D: React.FC<BattleScene3DProps> = ({
             maxPolarAngle={Math.PI / 2}
           />
           
-          <ambientLight intensity={0.5} />
-          <pointLight position={[10, 10, 10]} intensity={0.5} castShadow />
-          <pointLight position={[-10, 10, -10]} intensity={0.5} castShadow />
+          <ambientLight intensity={0.3} />
+          <pointLight position={[10, 10, 10]} intensity={1} castShadow color="#00f0ff" />
+          <pointLight position={[-10, 10, -10]} intensity={1} castShadow color="#ff00ff" />
+          <spotLight
+            position={[0, 10, 0]}
+            angle={0.3}
+            penumbra={1}
+            intensity={2}
+            castShadow
+            color="#ffffff"
+          />
           
           {/* Player Cards */}
           {playerCards.map((card, index) => (

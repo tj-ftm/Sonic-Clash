@@ -48,7 +48,7 @@ export const GameDataProvider: React.FC<{ children: ReactNode }> = ({ children }
   const fetchUserData = async () => {
     if (!isConnected || !address) return;
     
-    setIsLoading(true);
+    setIsLoading(false); // Don't show loading state for NFTs
     try {
       const provider = new ethers.JsonRpcProvider('https://rpc.soniclabs.com');
       const contract = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_ABI, provider);
