@@ -61,38 +61,67 @@ export const GameDataProvider: React.FC<{ children: ReactNode }> = ({ children }
       for (let i = 0; i < balance; i++) {
         const tokenIdPromise = contract.tokenOfOwnerByIndex(address, i)
           .then(async (tokenId: bigint) => {
-            const uri = await contract.tokenURI(tokenId);
-            const metadata = await fetch(uri).then(res => res.json());
-            
-            return {
-              tokenId: tokenId.toString(),
-              contractAddress: NFT_CONTRACT_ADDRESS,
-              name: metadata.name,
-              image: metadata.image,
-              traits: {
-                attack: metadata.attributes.find((attr: any) => attr.trait_type === 'Attack')?.value || 50,
-                defense: metadata.attributes.find((attr: any) => attr.trait_type === 'Defense')?.value || 50,
-                speed: metadata.attributes.find((attr: any) => attr.trait_type === 'Speed')?.value || 25,
-                specialAbility: metadata.attributes.find((attr: any) => attr.trait_type === 'Special Ability')?.value || 'None',
-                rarity: metadata.attributes.find((attr: any) => attr.trait_type === 'Rarity')?.value || 'Common',
-              },
-              marketData: {
-                floorPrice: '0 S',
-                lastSale: '0 S',
-                source: 'PaintSwap.io'
+            try {
+              const uri = await contract.tokenURI(tokenId);
+              if (!uri) {
+                console.warn(`No URI found for token ${tokenId}`);
+                return null;
               }
-            };
+
+              // Handle both IPFS and HTTP URIs
+              const formattedUri = uri.startsWith('ipfs://')
+                ? `https://ipfs.io/ipfs/${uri.split('ipfs://')[1]}`
+                : uri;
+
+              const response = await fetch(formattedUri);
+              if (!response.ok) {
+                throw new Error(`Failed to fetch metadata: ${response.status}`);
+              }
+
+              const metadata = await response.json();
+              
+              if (!metadata) {
+                throw new Error('Invalid metadata format');
+              }
+
+              return {
+                tokenId: tokenId.toString(),
+                contractAddress: NFT_CONTRACT_ADDRESS,
+                name: metadata.name || `Card #${tokenId}`,
+                image: metadata.image || '',
+                traits: {
+                  attack: metadata.attributes?.find((attr: any) => attr.trait_type === 'Attack')?.value ?? 50,
+                  defense: metadata.attributes?.find((attr: any) => attr.trait_type === 'Defense')?.value ?? 50,
+                  speed: metadata.attributes?.find((attr: any) => attr.trait_type === 'Speed')?.value ?? 25,
+                  specialAbility: metadata.attributes?.find((attr: any) => attr.trait_type === 'Special Ability')?.value ?? 'None',
+                  rarity: metadata.attributes?.find((attr: any) => attr.trait_type === 'Rarity')?.value ?? 'Common',
+                },
+                marketData: {
+                  floorPrice: '0 S',
+                  lastSale: '0 S',
+                  source: 'PaintSwap.io'
+                }
+              };
+            } catch (error) {
+              console.error(`Error fetching metadata for token ${tokenId}:`, error);
+              return null;
+            }
+          })
+          .catch(error => {
+            console.error('Error in token promise:', error);
+            return null;
           });
         
         tokenPromises.push(tokenIdPromise);
       }
       
-      const cards = await Promise.all(tokenPromises);
+      const cards = (await Promise.all(tokenPromises)).filter(Boolean);
       setUserCards(cards);
       setSonicPoints(1250); // Default starting points
       
     } catch (error) {
       console.error('Failed to fetch user data:', error);
+      toast.error('Failed to load your cards. Please try again later.');
     } finally {
       setIsLoading(false);
     }

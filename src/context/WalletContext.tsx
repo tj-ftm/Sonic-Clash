@@ -164,7 +164,6 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       });
       toast.success('Switched to Sonic Network');
     } catch (switchError: any) {
-      // This error code indicates that the chain has not been added to MetaMask
       if (switchError.code === 4902) {
         try {
           await window.ethereum.request({
@@ -185,61 +184,78 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const fetchNFTBalance = async (walletAddress: string) => {
     const retryFetch = async (url: string, retries = 3, delay = 1000): Promise<Response> => {
-      try {
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+      for (let i = 0; i < retries; i++) {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response;
+        } catch (error) {
+          if (i === retries - 1) throw error;
+          await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
         }
-        return response;
-      } catch (error) {
-        if (retries > 0) {
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return retryFetch(url, retries - 1, delay * 2);
-        }
-        throw error;
       }
+      throw new Error('Max retries reached');
     };
 
     try {
-      const response = await retryFetch(
-        `https://paintswap.io/api/v2/nfts?owner=${walletAddress}&collection=retrocard-clash`
-      );
+      const apiUrl = `https://paintswap.io/api/v2/nfts?owner=${walletAddress}&collection=retrocard-clash`;
       
+      const response = await retryFetch(apiUrl);
       const data = await response.json();
       
-      if (!Array.isArray(data.nfts)) {
-        throw new Error('Invalid NFT data format received');
+      if (!data || !Array.isArray(data.nfts)) {
+        throw new Error(`Invalid NFT data format received from ${apiUrl}`);
       }
 
-      const processedNFTs = data.nfts.map((nft: any) => {
-        try {
-          const imageUrl = nft.image.startsWith('ipfs://')
-            ? `https://ipfs.io/ipfs/${nft.image.split('ipfs://')[1]}`
-            : nft.image;
-
-          return {
-            tokenId: nft.tokenId,
-            contractAddress: nft.contractAddress,
-            name: nft.name || 'Unnamed Card',
-            image: imageUrl,
-            traits: {
-              attack: nft.attributes?.find((attr: any) => attr.trait_type === 'Attack')?.value || 50,
-              defense: nft.attributes?.find((attr: any) => attr.trait_type === 'Defense')?.value || 50,
-              speed: nft.attributes?.find((attr: any) => attr.trait_type === 'Speed')?.value || 25,
-              specialAbility: nft.attributes?.find((attr: any) => attr.trait_type === 'Special Ability')?.value || 'None',
-              rarity: nft.attributes?.find((attr: any) => attr.trait_type === 'Rarity')?.value || 'Common',
+      const processedNFTs = await Promise.all(
+        data.nfts.map(async (nft: any) => {
+          try {
+            if (!nft || typeof nft !== 'object') {
+              console.warn('Invalid NFT data structure:', nft);
+              return null;
             }
-          };
-        } catch (error) {
-          console.error('Error processing individual NFT:', error);
-          return null;
-        }
-      }).filter(Boolean);
 
-      setNftBalance(processedNFTs);
-    } catch (error) {
-      console.error('Failed to fetch NFT balance:', error);
-      toast.error('Failed to load NFTs. Please try again later.');
+            const imageUrl = nft.image?.startsWith('ipfs://')
+              ? `https://ipfs.io/ipfs/${nft.image.split('ipfs://')[1]}`
+              : nft.image;
+
+            if (!imageUrl) {
+              console.warn('Missing image URL for NFT:', nft.tokenId);
+              return null;
+            }
+
+            return {
+              tokenId: nft.tokenId,
+              contractAddress: nft.contractAddress,
+              name: nft.name || 'Unnamed Card',
+              image: imageUrl,
+              traits: {
+                attack: nft.attributes?.find((attr: any) => attr.trait_type === 'Attack')?.value ?? 50,
+                defense: nft.attributes?.find((attr: any) => attr.trait_type === 'Defense')?.value ?? 50,
+                speed: nft.attributes?.find((attr: any) => attr.trait_type === 'Speed')?.value ?? 25,
+                specialAbility: nft.attributes?.find((attr: any) => attr.trait_type === 'Special Ability')?.value ?? 'None',
+                rarity: nft.attributes?.find((attr: any) => attr.trait_type === 'Rarity')?.value ?? 'Common',
+              }
+            };
+          } catch (error) {
+            console.error('Error processing individual NFT:', error);
+            return null;
+          }
+        })
+      );
+
+      const validNFTs = processedNFTs.filter(Boolean);
+      setNftBalance(validNFTs);
+      
+      if (validNFTs.length === 0) {
+        console.warn('No valid NFTs found in the response');
+      }
+      
+    } catch (error: any) {
+      console.error('Failed to fetch NFT balance:', error.message);
+      toast.error(`Failed to load NFTs: ${error.message}`);
       setNftBalance([]);
     }
   };
@@ -280,5 +296,4 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   );
 };
 
-// Custom hook to use the wallet context
 export const useWallet = () => useContext(WalletContext);
