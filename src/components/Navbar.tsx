@@ -9,8 +9,8 @@ import {
 } from 'lucide-react';
 
 const Navbar: React.FC = () => {
-  const { isConnected, address, balance, nftBalance, tokenBalances, connectWallet, disconnectWallet } = useWallet();
-  const { sonicPoints } = useGameData();
+  const { isConnected, address, balance, connectWallet, disconnectWallet } = useWallet();
+  const { sonicPoints, userCards } = useGameData();
   const { theme, toggleTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -135,31 +135,16 @@ const Navbar: React.FC = () => {
                           Your NFTs
                         </h3>
                         <div className="space-y-2 max-h-40 overflow-y-auto">
-                          {nftBalance.length > 0 ? (
-                            nftBalance.map((nft) => (
-                              <div key={nft.tokenId} className="flex items-center">
-                                <img src={nft.image} alt={nft.name} className="w-8 h-8 rounded mr-2" />
-                                <span className="text-xs text-text-light dark:text-text-dark">{nft.name}</span>
+                          {userCards.length > 0 ? (
+                            userCards.map((card) => (
+                              <div key={card.tokenId} className="flex items-center">
+                                <img src={card.image} alt={card.name} className="w-8 h-8 rounded mr-2" />
+                                <span className="text-xs text-text-light dark:text-text-dark">{card.name}</span>
                               </div>
                             ))
                           ) : (
                             <div className="text-xs text-gray-500">No NFTs found</div>
                           )}
-                        </div>
-                      </div>
-
-                      {/* Tokens Section */}
-                      <div className="px-4 py-2 border-b border-accent-light dark:border-accent-dark">
-                        <h3 className="text-xs font-pixel text-text-light dark:text-text-dark mb-2">
-                          Tokens
-                        </h3>
-                        <div className="space-y-2">
-                          {tokenBalances.map((token) => (
-                            <div key={token.symbol} className="flex justify-between">
-                              <span className="text-xs text-text-light dark:text-text-dark">{token.symbol}</span>
-                              <span className="text-xs text-accent-light dark:text-accent-dark">{token.balance}</span>
-                            </div>
-                          ))}
                         </div>
                       </div>
 

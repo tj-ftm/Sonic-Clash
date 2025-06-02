@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useWallet } from './WalletContext';
 import { NFTCard } from '../types/game';
 import { ethers } from 'ethers';
-import axios from 'axios';
 
 const PAINTSWAP_API_URL = 'https://paintswap.io/api/v2';
 const COLLECTION_SLUG = 'retrocard-clash';
@@ -45,32 +44,31 @@ export const GameDataProvider: React.FC<{ children: ReactNode }> = ({ children }
     
     setIsLoading(true);
     try {
-      // Get all NFTs owned by the user
-      const response = await axios.get(`${PAINTSWAP_API_URL}/nfts`, {
-        params: {
-          owner: address.toLowerCase(),
-          collection: COLLECTION_SLUG,
-          includeMetadata: true,
-          includeSales: true,
-          includeOrders: true,
-          orderBy: 'tokenId',
-          orderDirection: 'asc'
-        }
-      });
+      // Get all NFTs owned by the user using native fetch
+      const response = await fetch(`${PAINTSWAP_API_URL}/nfts?owner=${address.toLowerCase()}&collection=${COLLECTION_SLUG}&includeMetadata=true&includeSales=true&includeOrders=true&orderBy=tokenId&orderDirection=asc`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
 
-      if (!response.data || !response.data.nfts || !Array.isArray(response.data.nfts)) {
+      if (!data || !data.nfts || !Array.isArray(data.nfts)) {
         throw new Error('Invalid response format from PaintSwap API');
       }
 
       const cards = await Promise.all(
-        response.data.nfts.map(async (nft: any) => {
+        data.nfts.map(async (nft: any) => {
           // Get metadata from tokenUri if available
           let metadata = nft.metadata;
           if (!metadata && nft.tokenUri) {
             try {
               const metadataUrl = nft.tokenUri.replace('ipfs://', 'https://ipfs.io/ipfs/');
-              const metadataResponse = await axios.get(metadataUrl);
-              metadata = metadataResponse.data;
+              const metadataResponse = await fetch(metadataUrl);
+              if (!metadataResponse.ok) {
+                throw new Error(`HTTP error! status: ${metadataResponse.status}`);
+              }
+              metadata = await metadataResponse.json();
             } catch (error) {
               console.error(`Failed to fetch metadata for token ${nft.tokenId}:`, error);
             }
