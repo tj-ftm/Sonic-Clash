@@ -3,8 +3,9 @@ import { useWallet } from './WalletContext';
 import { NFTCard } from '../types/game';
 import { ethers } from 'ethers';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
-const PAINTSWAP_API_URL = 'https://api.paintswap.finance/v3';
+const PAINTSWAP_API_URL = 'https://paintswap.io/api/v2';
 const RETROCARD_COLLECTION_ADDRESS = '0x2dc1886d67001d5d6a80feaa51513f7bb5a591fd';
 
 type GameDataContextType = {
@@ -48,7 +49,7 @@ export const GameDataProvider: React.FC<{ children: ReactNode }> = ({ children }
       // Fetch NFTs owned by the user from PaintSwap API
       const response = await axios.get(`${PAINTSWAP_API_URL}/nfts`, {
         params: {
-          collection: RETROCARD_COLLECTION_ADDRESS,
+          collection: 'retrocard-clash',
           owner: address,
           includeMetadata: true,
           includeSales: true
