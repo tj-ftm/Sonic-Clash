@@ -6,7 +6,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 
 const PAINTSWAP_API_URL = 'https://api.paintswap.finance';
-const RETROCARD_COLLECTION_ADDRESS = '0x2dc1886d67001d5d6a80feaa51513f7bb5a591fd';
+const RETROCARD_COLLECTION_ADDRESS = '0x2dc1886d67001d5d6a80feaa51513f7bb5a591fd'.toLowerCase();
 
 type GameDataContextType = {
   userCards: NFTCard[];
@@ -47,20 +47,21 @@ export const GameDataProvider: React.FC<{ children: ReactNode }> = ({ children }
     setIsLoading(true);
     try {
       // Fetch NFTs owned by the user from PaintSwap API
-      const response = await axios.get(`${PAINTSWAP_API_URL}/v3/userNFTs`, {
+      const response = await axios.get(`${PAINTSWAP_API_URL}/v2/nfts`, {
         params: {
-          userAddress: address,
+          owner: address.toLowerCase(),
           collection: RETROCARD_COLLECTION_ADDRESS,
-          includeMetadata: 'true',
-          includeSales: 'true'
+          includeMetadata: true,
+          includeSales: true,
+          includeOrders: true
         }
       });
 
-      if (!response.data || !Array.isArray(response.data.nfts)) {
+      if (!response.data || !Array.isArray(response.data)) {
         throw new Error('Invalid response format from PaintSwap API');
       }
 
-      const cards = response.data.nfts.map((nft: any) => ({
+      const cards = response.data.map((nft: any) => ({
         tokenId: nft.tokenId,
         contractAddress: RETROCARD_COLLECTION_ADDRESS,
         name: nft.name || `Card #${nft.tokenId}`,
@@ -75,9 +76,9 @@ export const GameDataProvider: React.FC<{ children: ReactNode }> = ({ children }
           rarity: nft.attributes?.find((attr: any) => attr.trait_type === 'Rarity')?.value ?? 'Common',
         },
         marketData: nft.activeListing ? {
-          floorPrice: `${ethers.formatEther(nft.activeListing.price)} S`,
-          lastSale: nft.lastSale ? `${ethers.formatEther(nft.lastSale.price)} S` : '0 S',
-          source: 'PaintSwap.io'
+          floorPrice: nft.activeListing ? `${ethers.formatEther(nft.activeListing.price)} S` : undefined,
+          lastSale: nft.lastSale ? `${ethers.formatEther(nft.lastSale.price)} S` : undefined,
+          source: 'PaintSwap'
         } : undefined
       }));
 
