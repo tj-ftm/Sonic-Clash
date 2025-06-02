@@ -2,15 +2,10 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useWallet } from './WalletContext';
 import { NFTCard } from '../types/game';
 import { ethers } from 'ethers';
+import axios from 'axios';
 
-// Contract ABI (simplified for NFT data fetching)
-const NFT_ABI = [
-  'function tokenURI(uint256 tokenId) view returns (string)',
-  'function balanceOf(address owner) view returns (uint256)',
-  'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)',
-];
-
-const NFT_CONTRACT_ADDRESS = '0x2dc1886d67001d5d6a80feaa51513f7bb5a591fd';
+const PAINTSWAP_API_URL = 'https://api.paintswap.finance/v3';
+const RETROCARD_COLLECTION_ADDRESS = '0x2dc1886d67001d5d6a80feaa51513f7bb5a591fd';
 
 type GameDataContextType = {
   userCards: NFTCard[];
@@ -48,74 +43,43 @@ export const GameDataProvider: React.FC<{ children: ReactNode }> = ({ children }
   const fetchUserData = async () => {
     if (!isConnected || !address) return;
     
-    setIsLoading(false); // Don't show loading state for NFTs
+    setIsLoading(true);
     try {
-      const provider = new ethers.JsonRpcProvider('https://rpc.soniclabs.com');
-      const contract = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_ABI, provider);
-      
-      // Get user's NFT balance
-      const balance = await contract.balanceOf(address);
-      const tokenPromises = [];
-      
-      // Fetch all tokens owned by the user
-      for (let i = 0; i < balance; i++) {
-        const tokenIdPromise = contract.tokenOfOwnerByIndex(address, i)
-          .then(async (tokenId: bigint) => {
-            try {
-              const uri = await contract.tokenURI(tokenId);
-              if (!uri) {
-                console.warn(`No URI found for token ${tokenId}`);
-                return null;
-              }
+      // Fetch NFTs owned by the user from PaintSwap API
+      const response = await axios.get(`${PAINTSWAP_API_URL}/nfts`, {
+        params: {
+          collection: RETROCARD_COLLECTION_ADDRESS,
+          owner: address,
+          includeMetadata: true,
+          includeSales: true
+        }
+      });
 
-              // Handle both IPFS and HTTP URIs
-              const formattedUri = uri.startsWith('ipfs://')
-                ? `https://ipfs.io/ipfs/${uri.split('ipfs://')[1]}`
-                : uri;
-
-              const response = await fetch(formattedUri);
-              if (!response.ok) {
-                throw new Error(`Failed to fetch metadata: ${response.status}`);
-              }
-
-              const metadata = await response.json();
-              
-              if (!metadata) {
-                throw new Error('Invalid metadata format');
-              }
-
-              return {
-                tokenId: tokenId.toString(),
-                contractAddress: NFT_CONTRACT_ADDRESS,
-                name: metadata.name || `Card #${tokenId}`,
-                image: metadata.image || '',
-                traits: {
-                  attack: metadata.attributes?.find((attr: any) => attr.trait_type === 'Attack')?.value ?? 50,
-                  defense: metadata.attributes?.find((attr: any) => attr.trait_type === 'Defense')?.value ?? 50,
-                  speed: metadata.attributes?.find((attr: any) => attr.trait_type === 'Speed')?.value ?? 25,
-                  specialAbility: metadata.attributes?.find((attr: any) => attr.trait_type === 'Special Ability')?.value ?? 'None',
-                  rarity: metadata.attributes?.find((attr: any) => attr.trait_type === 'Rarity')?.value ?? 'Common',
-                },
-                marketData: {
-                  floorPrice: '0 S',
-                  lastSale: '0 S',
-                  source: 'PaintSwap.io'
-                }
-              };
-            } catch (error) {
-              console.error(`Error fetching metadata for token ${tokenId}:`, error);
-              return null;
-            }
-          })
-          .catch(error => {
-            console.error('Error in token promise:', error);
-            return null;
-          });
-        
-        tokenPromises.push(tokenIdPromise);
+      if (!response.data || !Array.isArray(response.data.nfts)) {
+        throw new Error('Invalid response format from PaintSwap API');
       }
-      
-      const cards = (await Promise.all(tokenPromises)).filter(Boolean);
+
+      const cards = response.data.nfts.map((nft: any) => ({
+        tokenId: nft.tokenId,
+        contractAddress: RETROCARD_COLLECTION_ADDRESS,
+        name: nft.name || `Card #${nft.tokenId}`,
+        image: nft.image.startsWith('ipfs://')
+          ? `https://ipfs.io/ipfs/${nft.image.split('ipfs://')[1]}`
+          : nft.image,
+        traits: {
+          attack: nft.attributes?.find((attr: any) => attr.trait_type === 'Attack')?.value ?? 50,
+          defense: nft.attributes?.find((attr: any) => attr.trait_type === 'Defense')?.value ?? 50,
+          speed: nft.attributes?.find((attr: any) => attr.trait_type === 'Speed')?.value ?? 25,
+          specialAbility: nft.attributes?.find((attr: any) => attr.trait_type === 'Special Ability')?.value ?? 'None',
+          rarity: nft.attributes?.find((attr: any) => attr.trait_type === 'Rarity')?.value ?? 'Common',
+        },
+        marketData: nft.activeListing ? {
+          floorPrice: `${ethers.formatEther(nft.activeListing.price)} S`,
+          lastSale: nft.lastSale ? `${ethers.formatEther(nft.lastSale.price)} S` : '0 S',
+          source: 'PaintSwap.io'
+        } : undefined
+      }));
+
       setUserCards(cards);
       setSonicPoints(1250); // Default starting points
       
