@@ -7,8 +7,6 @@ type WalletContextType = {
   isConnected: boolean;
   address: string | null;
   balance: string;
-  nftBalance: NFTCard[];
-  tokenBalances: { symbol: string; balance: string }[];
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
   chainId: number | null;
@@ -20,8 +18,6 @@ const WalletContext = createContext<WalletContextType>({
   isConnected: false,
   address: null,
   balance: '0',
-  nftBalance: [],
-  tokenBalances: [],
   connectWallet: async () => {},
   disconnectWallet: () => {},
   chainId: null,
@@ -48,8 +44,6 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [address, setAddress] = useState<string | null>(null);
   const [balance, setBalance] = useState('0');
   const [chainId, setChainId] = useState<number | null>(null);
-  const [nftBalance, setNftBalance] = useState<NFTCard[]>([]);
-  const [tokenBalances, setTokenBalances] = useState<{ symbol: string; balance: string }[]>([]);
 
   // Check if wallet is already connected
   useEffect(() => {
@@ -64,8 +58,6 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             setAddress(accounts[0]);
             setIsConnected(true);
             updateBalance(provider, accounts[0]);
-            fetchNFTBalance(accounts[0]);
-            fetchTokenBalances(accounts[0]);
           }
         } catch (error) {
           console.error('Failed to check wallet connection:', error);
@@ -182,109 +174,12 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   };
 
-  const fetchNFTBalance = async (walletAddress: string) => {
-    const retryFetch = async (url: string, retries = 3, delay = 1000): Promise<Response> => {
-      for (let i = 0; i < retries; i++) {
-        try {
-          const response = await fetch(url);
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          return response;
-        } catch (error) {
-          if (i === retries - 1) throw error;
-          await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
-        }
-      }
-      throw new Error('Max retries reached');
-    };
-
-    try {
-      const apiUrl = `https://paintswap.io/api/v2/nfts?owner=${walletAddress}&collection=retrocard-clash`;
-      
-      const response = await retryFetch(apiUrl);
-      const data = await response.json();
-      
-      if (!data || !Array.isArray(data.nfts)) {
-        throw new Error(`Invalid NFT data format received from ${apiUrl}`);
-      }
-
-      const processedNFTs = await Promise.all(
-        data.nfts.map(async (nft: any) => {
-          try {
-            if (!nft || typeof nft !== 'object') {
-              console.warn('Invalid NFT data structure:', nft);
-              return null;
-            }
-
-            const imageUrl = nft.image?.startsWith('ipfs://')
-              ? `https://ipfs.io/ipfs/${nft.image.split('ipfs://')[1]}`
-              : nft.image;
-
-            if (!imageUrl) {
-              console.warn('Missing image URL for NFT:', nft.tokenId);
-              return null;
-            }
-
-            return {
-              tokenId: nft.tokenId,
-              contractAddress: nft.contractAddress,
-              name: nft.name || 'Unnamed Card',
-              image: imageUrl,
-              traits: {
-                attack: nft.attributes?.find((attr: any) => attr.trait_type === 'Attack')?.value ?? 50,
-                defense: nft.attributes?.find((attr: any) => attr.trait_type === 'Defense')?.value ?? 50,
-                speed: nft.attributes?.find((attr: any) => attr.trait_type === 'Speed')?.value ?? 25,
-                specialAbility: nft.attributes?.find((attr: any) => attr.trait_type === 'Special Ability')?.value ?? 'None',
-                rarity: nft.attributes?.find((attr: any) => attr.trait_type === 'Rarity')?.value ?? 'Common',
-              }
-            };
-          } catch (error) {
-            console.error('Error processing individual NFT:', error);
-            return null;
-          }
-        })
-      );
-
-      const validNFTs = processedNFTs.filter(Boolean);
-      setNftBalance(validNFTs);
-      
-      if (validNFTs.length === 0) {
-        console.warn('No valid NFTs found in the response');
-      }
-      
-    } catch (error: any) {
-      console.error('Failed to fetch NFT balance:', error.message);
-      toast.error(`Failed to load NFTs: ${error.message}`);
-      setNftBalance([]);
-    }
-  };
-
-  const fetchTokenBalances = async (walletAddress: string) => {
-    try {
-      const response = await fetch(`https://sonicscan.org/api/account/tokens/${walletAddress}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      setTokenBalances(data.tokens.map((token: any) => ({
-        symbol: token.symbol,
-        balance: ethers.formatUnits(token.balance, token.decimals)
-      })));
-    } catch (error) {
-      console.error('Failed to fetch token balances:', error);
-      setTokenBalances([]);
-    }
-  };
-
   return (
     <WalletContext.Provider
       value={{
         isConnected,
         address,
         balance,
-        nftBalance,
-        tokenBalances,
         connectWallet,
         disconnectWallet,
         chainId,

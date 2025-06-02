@@ -4,8 +4,8 @@ import { NFTCard } from '../types/game';
 import { ethers } from 'ethers';
 import axios from 'axios';
 
-const PAINTSWAP_API_URL = 'https://api.paintswap.finance/v2';
-const COLLECTION_ADDRESS = '0x2dc1886d67001d5d6a80feaa51513f7bb5a591fd'.toLowerCase();
+const PAINTSWAP_API_URL = 'https://paintswap.io/api/v2';
+const COLLECTION_SLUG = 'retrocard-clash';
 
 type GameDataContextType = {
   userCards: NFTCard[];
@@ -49,7 +49,7 @@ export const GameDataProvider: React.FC<{ children: ReactNode }> = ({ children }
       const response = await axios.get(`${PAINTSWAP_API_URL}/nfts`, {
         params: {
           owner: address.toLowerCase(),
-          collection: COLLECTION_ADDRESS,
+          collection: COLLECTION_SLUG,
           includeMetadata: true,
           includeSales: true,
           includeOrders: true,
@@ -91,7 +91,7 @@ export const GameDataProvider: React.FC<{ children: ReactNode }> = ({ children }
 
           return {
             tokenId: nft.tokenId.toString(),
-            contractAddress: COLLECTION_ADDRESS,
+            contractAddress: nft.contractAddress,
             name: metadata?.name || nft.name || `Card #${nft.tokenId}`,
             image: imageUrl,
             traits: {
@@ -115,7 +115,6 @@ export const GameDataProvider: React.FC<{ children: ReactNode }> = ({ children }
       
     } catch (error) {
       console.error('Failed to fetch user data:', error);
-      // Handle error without toast since it's imported in App.tsx
       setUserCards([]);
     } finally {
       setIsLoading(false);
