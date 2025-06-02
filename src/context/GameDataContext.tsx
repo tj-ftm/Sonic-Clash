@@ -5,7 +5,7 @@ import { ethers } from 'ethers';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-const PAINTSWAP_API_URL = 'https://paintswap.io/api/v2';
+const PAINTSWAP_API_URL = 'https://api.paintswap.finance/v3';
 const RETROCARD_COLLECTION_ADDRESS = '0x2dc1886d67001d5d6a80feaa51513f7bb5a591fd';
 
 type GameDataContextType = {
@@ -47,20 +47,20 @@ export const GameDataProvider: React.FC<{ children: ReactNode }> = ({ children }
     setIsLoading(true);
     try {
       // Fetch NFTs owned by the user from PaintSwap API
-      const response = await axios.get(`${PAINTSWAP_API_URL}/nfts`, {
+      const response = await axios.get(`${PAINTSWAP_API_URL}/userNFTs`, {
         params: {
-          collection: 'retrocard-clash',
-          owner: address,
-          includeMetadata: true,
-          includeSales: true
+          userAddress: address,
+          collection: RETROCARD_COLLECTION_ADDRESS,
+          includeMetadata: 'true',
+          includeSales: 'true'
         }
       });
 
-      if (!response.data || !Array.isArray(response.data.nfts)) {
+      if (!response.data || !Array.isArray(response.data)) {
         throw new Error('Invalid response format from PaintSwap API');
       }
 
-      const cards = response.data.nfts.map((nft: any) => ({
+      const cards = response.data.map((nft: any) => ({
         tokenId: nft.tokenId,
         contractAddress: RETROCARD_COLLECTION_ADDRESS,
         name: nft.name || `Card #${nft.tokenId}`,
